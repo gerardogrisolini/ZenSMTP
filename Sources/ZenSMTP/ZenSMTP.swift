@@ -15,6 +15,7 @@ public enum SmtpError: Error {
 
 public class ZenSMTP {
 
+    public static var shared: ZenSMTP!
     private let eventLoopGroup: EventLoopGroup
     private var eventLoop: EventLoop {
         return self.eventLoopGroup.next()
@@ -32,6 +33,7 @@ public class ZenSMTP {
             let sslContext = try! NIOSSLContext(configuration: configuration)
             clientHandler = try! NIOSSLClientHandler(context: sslContext, serverHostname: config.hostname)
         }
+        ZenSMTP.shared = self
     }
     
     let printHandler: (String) -> Void = { str in
