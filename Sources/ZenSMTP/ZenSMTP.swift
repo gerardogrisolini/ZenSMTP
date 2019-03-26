@@ -16,16 +16,11 @@ public enum SmtpError: Error {
 public class ZenSMTP {
 
     public static var shared: ZenSMTP!
-    private let eventLoopGroup: EventLoopGroup
-    private var eventLoop: EventLoop {
-        return self.eventLoopGroup.next()
-    }
     private var config: ServerConfiguration!
     private var clientHandler: NIOSSLClientHandler? = nil
 
-    public init(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) {
+    public init(config: ServerConfiguration) {
         self.config = config
-        self.eventLoopGroup = eventLoopGroup
         if let cert = config.cert, let key = config.key {
             let configuration = TLSConfiguration.forServer(
                 certificateChain: [cert],
@@ -41,9 +36,10 @@ public class ZenSMTP {
     }
 
     public func send(email: Email, handler: @escaping (String?) -> ()) {
-        let emailSentPromise: EventLoopPromise<Void> = eventLoop.makePromise()
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let emailSentPromise: EventLoopPromise<Void> = group.next().makePromise()
         
-        let bootstrap = ClientBootstrap(group: eventLoopGroup)
+        let bootstrap = ClientBootstrap(group: group)
             // Enable SO_REUSEADDR.
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
@@ -70,6 +66,7 @@ public class ZenSMTP {
         func completed(_ error: String?) {
             bootstrap.whenSuccess { $0.close(promise: nil) }
             handler(nil)
+            try! group.syncShutdownGracefully()
         }
 
         emailSentPromise.futureResult
