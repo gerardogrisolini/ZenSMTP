@@ -1,5 +1,6 @@
 import XCTest
 import Foundation
+import NIO
 @testable import ZenSMTP
 
 final class ZenSMTPTests: XCTestCase {
@@ -40,7 +41,8 @@ final class ZenSMTPTests: XCTestCase {
             key: nil //.file("/Users/gerardo/Projects/ZenNIO/SSL/key.pem")
         )
         
-        let smtp = ZenSMTP(config: config)
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let smtp = try! ZenSMTP(config: config, eventLoopGroup: eventLoopGroup)
         
         smtp.send(email: email) { error in
             if let error = error {
@@ -49,6 +51,7 @@ final class ZenSMTPTests: XCTestCase {
                 response = true
                 print("✅")
             }
+            try! eventLoopGroup.syncShutdownGracefully()
         }
         
         let exp = expectation(description: "Test send email for 10 seconds")

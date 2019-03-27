@@ -15,18 +15,24 @@ public enum SmtpError: Error {
 
 public class ZenSMTP {
 
-    public static var shared: ZenSMTP!
+    private let eventLoopGroup: EventLoopGroup
+    private var eventLoop: EventLoop {
+        return self.eventLoopGroup.next()
+    }
     private var config: ServerConfiguration!
     private var clientHandler: NIOSSLClientHandler? = nil
 
-    public init(config: ServerConfiguration) {
+    public static var shared: ZenSMTP!
+
+    public init(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) throws {
+        self.eventLoopGroup = eventLoopGroup
         self.config = config
         if let cert = config.cert, let key = config.key {
             let configuration = TLSConfiguration.forServer(
                 certificateChain: [cert],
                 privateKey: key)
-            let sslContext = try! NIOSSLContext(configuration: configuration)
-            clientHandler = try! NIOSSLClientHandler(context: sslContext, serverHostname: config.hostname)
+            let sslContext = try NIOSSLContext(configuration: configuration)
+            clientHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: config.hostname)
         }
         ZenSMTP.shared = self
     }
@@ -36,10 +42,9 @@ public class ZenSMTP {
     }
 
     public func send(email: Email, handler: @escaping (String?) -> ()) {
-        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let emailSentPromise: EventLoopPromise<Void> = group.next().makePromise()
+        let emailSentPromise: EventLoopPromise<Void> = eventLoop.makePromise()
         
-        let bootstrap = ClientBootstrap(group: group)
+        let bootstrap = ClientBootstrap(group: eventLoopGroup)
             // Enable SO_REUSEADDR.
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
@@ -66,7 +71,6 @@ public class ZenSMTP {
         func completed(_ error: String?) {
             bootstrap.whenSuccess { $0.close(promise: nil) }
             handler(nil)
-            try! group.syncShutdownGracefully()
         }
 
         emailSentPromise.futureResult
