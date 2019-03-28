@@ -41,9 +41,7 @@ final class ZenSMTPTests: XCTestCase {
             key: nil //.file("/Users/gerardo/Projects/ZenNIO/SSL/key.pem")
         )
         
-        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let smtp = try! ZenSMTP(config: config, eventLoopGroup: eventLoopGroup)
-        
+        let smtp = try! ZenSMTP(config: config)
         smtp.send(email: email) { error in
             if let error = error {
                 print("❌ : \(error)")
@@ -51,7 +49,6 @@ final class ZenSMTPTests: XCTestCase {
                 response = true
                 print("✅")
             }
-            try! eventLoopGroup.syncShutdownGracefully()
         }
         
         let exp = expectation(description: "Test send email for 10 seconds")
@@ -61,7 +58,8 @@ final class ZenSMTPTests: XCTestCase {
         } else {
             XCTFail("Test interrupted")
         }
-    }
+        try! smtp.close()
+   }
     
     static var allTests = [
         ("testSendEmail", testSendEmail),

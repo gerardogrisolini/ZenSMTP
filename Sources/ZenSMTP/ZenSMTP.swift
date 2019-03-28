@@ -14,18 +14,17 @@ public enum SmtpError: Error {
 }
 
 public class ZenSMTP {
-
-    private let eventLoopGroup: EventLoopGroup
+    
+    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     private var eventLoop: EventLoop {
         return self.eventLoopGroup.next()
     }
     private var config: ServerConfiguration!
     private var clientHandler: NIOSSLClientHandler? = nil
-
+    
     public static var shared: ZenSMTP!
-
-    public init(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) throws {
-        self.eventLoopGroup = eventLoopGroup
+    
+    public init(config: ServerConfiguration) throws {
         self.config = config
         if let cert = config.cert, let key = config.key {
             let configuration = TLSConfiguration.forServer(
@@ -40,7 +39,7 @@ public class ZenSMTP {
     let printHandler: (String) -> Void = { str in
         print(str)
     }
-
+    
     public func send(email: Email, handler: @escaping (String?) -> ()) {
         let emailSentPromise: EventLoopPromise<Void> = eventLoop.makePromise()
         
@@ -72,13 +71,18 @@ public class ZenSMTP {
             bootstrap.whenSuccess { $0.close(promise: nil) }
             handler(nil)
         }
-
+        
         emailSentPromise.futureResult
             .map { _ in
                 completed(nil)
-             }
+            }
             .whenFailure { error in
                 completed(error.localizedDescription)
-            }
+        }
+    }
+    
+    public func close() throws {
+        try eventLoopGroup.syncShutdownGracefully()
     }
 }
+
