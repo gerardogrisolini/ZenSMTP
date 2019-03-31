@@ -19,8 +19,8 @@ public class ZenSMTP {
     private var eventLoop: EventLoop {
         return self.eventLoopGroup.next()
     }
-    private var config: ServerConfiguration!
-    private var clientHandler: NIOSSLClientHandler? = nil
+    public var config: ServerConfiguration!
+    public var clientHandler: NIOSSLClientHandler? = nil
     
     public static var shared: ZenSMTP!
     
@@ -36,7 +36,7 @@ public class ZenSMTP {
         ZenSMTP.shared = self
     }
     
-    let printHandler: (String) -> Void = { str in
+    let communicationHandler: (String) -> Void = { str in
         print(str)
     }
     
@@ -47,22 +47,17 @@ public class ZenSMTP {
             // Enable SO_REUSEADDR.
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
-                let handlers: [ChannelHandler] = [
-                    PrintEverythingHandler(handler: self.printHandler),
+                channel.pipeline.addHandlers([
+                    PrintEverythingHandler(handler: self.communicationHandler),
+                    ByteToMessageHandler(LineBasedFrameDecoder()),
                     SMTPResponseDecoder(),
-                    SMTPRequestEncoder(),
+                    MessageToByteHandler(SMTPRequestEncoder()),
                     SendEmailHandler(configuration: self.config,
                                      email: email,
                                      allDonePromise: emailSentPromise)
-                ]
-                if let clientHandler = self.clientHandler {
-                    return channel.pipeline.addHandler(clientHandler).flatMap {
-                        channel.pipeline.addHandlers(handlers)
-                    }
-                } else {
-                    return channel.pipeline.addHandlers(handlers)
-                }
+                    ], position: .last)
             }
+            .tlsConfig()
             .connect(host: config.hostname, port: config.port)
         
         bootstrap.cascadeFailure(to: emailSentPromise)
@@ -86,3 +81,16 @@ public class ZenSMTP {
     }
 }
 
+extension ClientBootstrap {
+    func tlsConfig() -> ClientBootstrap {
+        // in case you don't want to use TLS which is a bad idea and _WILL SEND YOUR PASSWORD IN PLAIN TEXT_
+        // just `return self`.
+        guard let clientHandler = ZenSMTP.shared.clientHandler else {
+            return self
+        }
+        
+        return self.channelInitializer { channel in
+            channel.pipeline.addHandler(clientHandler)
+        }
+    }
+}

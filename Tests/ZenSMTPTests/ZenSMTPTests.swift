@@ -52,7 +52,7 @@ final class ZenSMTPTests: XCTestCase {
         }
         
         let exp = expectation(description: "Test send email for 10 seconds")
-        let result = XCTWaiter.wait(for: [exp], timeout: 10.0)
+        let result = XCTWaiter.wait(for: [exp], timeout: 5.0)
         if result == XCTWaiter.Result.timedOut {
             XCTAssertTrue(response)
         } else {

@@ -5,6 +5,7 @@
 //  Created by admin on 01/03/2019.
 //
 
+import Foundation
 import NIO
 
 final class SendEmailHandler: ChannelInboundHandler {
@@ -47,12 +48,12 @@ final class SendEmailHandler: ChannelInboundHandler {
         let result = self.unwrapInboundIn(data)
         switch result {
         case .error(let message):
-            self.allDonePromise.fail(SmtpError.sendingEmail(reason: message))
+            self.allDonePromise.fail(NSError(domain: "sending email", code: 1, userInfo: ["reason": message]))
             return
         case .ok:
             () // cool
         }
-
+        
         switch self.currentlyWaitingFor {
         case .initialMessageFromServer:
             self.send(context: context, command: .sayHello(serverName: self.serverConfiguration.hostname))
