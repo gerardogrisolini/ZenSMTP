@@ -15,7 +15,7 @@ public enum SmtpError: Error {
 
 public class ZenSMTP {
     
-    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    private let eventLoopGroup: EventLoopGroup
     private var eventLoop: EventLoop {
         return self.eventLoopGroup.next()
     }
@@ -24,7 +24,8 @@ public class ZenSMTP {
     
     public static var shared: ZenSMTP!
     
-    public init(config: ServerConfiguration) throws {
+    public init(config: ServerConfiguration, numberOfThreads: Int = 1) throws {
+        eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: numberOfThreads)
         self.config = config
         if let cert = config.cert, let key = config.key {
             let configuration = TLSConfiguration.forServer(
