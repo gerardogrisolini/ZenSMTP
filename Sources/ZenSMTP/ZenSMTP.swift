@@ -48,8 +48,10 @@ public class ZenSMTP {
             // Enable SO_REUSEADDR.
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
-                channel.pipeline.addHandlers([
-                    PrintEverythingHandler(handler: self.communicationHandler),
+                #if DEBUG
+                _ = channel.pipeline.addHandler(PrintEverythingHandler(handler: self.communicationHandler))
+                #endif
+                return channel.pipeline.addHandlers([
                     ByteToMessageHandler(LineBasedFrameDecoder()),
                     SMTPResponseDecoder(),
                     MessageToByteHandler(SMTPRequestEncoder()),
@@ -95,3 +97,4 @@ extension ClientBootstrap {
         }
     }
 }
+
