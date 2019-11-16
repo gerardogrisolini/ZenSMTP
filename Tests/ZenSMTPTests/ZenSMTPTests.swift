@@ -41,7 +41,8 @@ final class ZenSMTPTests: XCTestCase {
             key: nil //.file("/Users/gerardo/Projects/ZenNIO/SSL/key.pem")
         )
         
-        let smtp = try! ZenSMTP(config: config)
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let smtp = try! ZenSMTP(config: config, eventLoopGroup: eventLoopGroup)
         smtp.send(email: email) { error in
             if let error = error {
                 print("❌ : \(error)")

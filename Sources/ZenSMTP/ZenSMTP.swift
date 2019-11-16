@@ -23,9 +23,9 @@ public class ZenSMTP {
     public var clientHandler: NIOSSLClientHandler? = nil
     
     public static var shared: ZenSMTP!
-    
-    public init(config: ServerConfiguration, numberOfThreads: Int = 1) throws {
-        eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: numberOfThreads)
+        
+    public init(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) throws {
+        self.eventLoopGroup = eventLoopGroup
         self.config = config
         if let cert = config.cert, let key = config.key {
             let configuration = TLSConfiguration.forServer(
@@ -36,7 +36,7 @@ public class ZenSMTP {
         }
         ZenSMTP.shared = self
     }
-    
+
     let communicationHandler: (String) -> Void = { str in
         print(str)
     }
