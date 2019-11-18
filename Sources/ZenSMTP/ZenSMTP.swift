@@ -16,9 +16,6 @@ public enum SmtpError: Error {
 public class ZenSMTP {
     
     private let eventLoopGroup: EventLoopGroup
-    private var eventLoop: EventLoop {
-        return self.eventLoopGroup.next()
-    }
     public var config: ServerConfiguration!
     public var clientHandler: NIOSSLClientHandler? = nil
     
@@ -41,8 +38,8 @@ public class ZenSMTP {
         print(str)
     }
     
-    public func send(email: Email, handler: @escaping (String?) -> ()) {
-        let emailSentPromise: EventLoopPromise<Void> = eventLoop.makePromise()
+    public func send(email: Email) -> EventLoopFuture<Void> {
+        let emailSentPromise: EventLoopPromise<Void> = eventLoopGroup.next().makePromise()
         
         let bootstrap = ClientBootstrap(group: eventLoopGroup)
             // Enable SO_REUSEADDR.
@@ -65,22 +62,9 @@ public class ZenSMTP {
         
         bootstrap.cascadeFailure(to: emailSentPromise)
         
-        func completed(_ error: String?) {
+        return emailSentPromise.futureResult.map { () -> Void in
             bootstrap.whenSuccess { $0.close(promise: nil) }
-            handler(nil)
         }
-        
-        emailSentPromise.futureResult
-            .map { _ in
-                completed(nil)
-            }
-            .whenFailure { error in
-                completed(error.localizedDescription)
-        }
-    }
-    
-    public func close() throws {
-        try eventLoopGroup.syncShutdownGracefully()
     }
 }
 

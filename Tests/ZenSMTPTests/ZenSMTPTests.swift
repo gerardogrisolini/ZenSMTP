@@ -6,8 +6,6 @@ import NIO
 final class ZenSMTPTests: XCTestCase {
     
     func testSendEmail() {
-        var response: Bool = false
-        
         let data1 = try! Data(contentsOf: URL(string: "https://www.policymed.com/wp-content/uploads/2013/02/6a00e5520572bb8834017d41062de7970c-320wi.png")!)
         let data2 = "Hello from ZenSMTP".data(using: .utf8)!
 
@@ -33,33 +31,31 @@ final class ZenSMTPTests: XCTestCase {
         )
         
         let config = ServerConfiguration(
-            hostname: "pro.eu.turbo-smtp.com",
+            hostname: "smtp.sendgrid.net",
             port: 25,
-            username: "g.grisolini@bluecityspa.com",
-            password: "Sm0CPGnB",
+            username: "azure_b57de0023aaf333567301126592b2b4f@azure.com",
+            password: "Grs@321.",
             cert: nil, //.file("/Users/gerardo/Projects/ZenNIO/SSL/cert.pem"),
             key: nil //.file("/Users/gerardo/Projects/ZenNIO/SSL/key.pem")
         )
         
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let smtp = try! ZenSMTP(config: config, eventLoopGroup: eventLoopGroup)
-        smtp.send(email: email) { error in
-            if let error = error {
-                print("❌ : \(error)")
-            } else {
-                response = true
+        smtp.send(email: email).whenComplete { result in
+            switch result {
+            case .success(_):
                 print("✅")
+            case .failure(let err):
+                print("❌ : \(err)")
             }
         }
-        
-        let exp = expectation(description: "Test send email for 10 seconds")
+
+        let exp = expectation(description: "Test send email for 5 seconds")
         let result = XCTWaiter.wait(for: [exp], timeout: 5.0)
-        if result == XCTWaiter.Result.timedOut {
-            XCTAssertTrue(response)
-        } else {
+        if result != XCTWaiter.Result.timedOut {
             XCTFail("Test interrupted")
         }
-        try! smtp.close()
+        try! eventLoopGroup.syncShutdownGracefully()
    }
     
     static var allTests = [
