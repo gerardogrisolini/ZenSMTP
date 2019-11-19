@@ -31,10 +31,10 @@ final class ZenSMTPTests: XCTestCase {
         )
         
         let config = ServerConfiguration(
-            hostname: "smtp.sendgrid.net",
+            hostname: "smtp.domain.net",
             port: 25,
-            username: "azure_b57de0023aaf333567301126592b2b4f@azure.com",
-            password: "Grs@321.",
+            username: "username",
+            password: "******",
             cert: nil, //.file("/Users/gerardo/Projects/ZenNIO/SSL/cert.pem"),
             key: nil //.file("/Users/gerardo/Projects/ZenNIO/SSL/key.pem")
         )
