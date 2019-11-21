@@ -15,13 +15,16 @@ public enum SmtpError: Error {
 
 public class ZenSMTP {
     
-    private let eventLoopGroup: EventLoopGroup
+    private var eventLoopGroup: EventLoopGroup!
     public var config: ServerConfiguration!
     public var clientHandler: NIOSSLClientHandler? = nil
     
-    public static var shared: ZenSMTP!
+    public static var mail = ZenSMTP()
         
-    public init(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) throws {
+    init() {
+    }
+    
+    public func setup(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) throws {
         self.eventLoopGroup = eventLoopGroup
         self.config = config
         if let cert = config.cert, let key = config.key {
@@ -31,7 +34,6 @@ public class ZenSMTP {
             let sslContext = try NIOSSLContext(configuration: configuration)
             clientHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: config.hostname)
         }
-        ZenSMTP.shared = self
     }
 
     let communicationHandler: (String) -> Void = { str in
@@ -72,7 +74,7 @@ extension ClientBootstrap {
     func tlsConfig() -> ClientBootstrap {
         // in case you don't want to use TLS which is a bad idea and _WILL SEND YOUR PASSWORD IN PLAIN TEXT_
         // just `return self`.
-        guard let clientHandler = ZenSMTP.shared.clientHandler else {
+        guard let clientHandler = ZenSMTP.mail.clientHandler else {
             return self
         }
         

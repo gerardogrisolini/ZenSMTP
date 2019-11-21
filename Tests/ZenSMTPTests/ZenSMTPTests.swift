@@ -40,8 +40,8 @@ final class ZenSMTPTests: XCTestCase {
         )
         
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        let smtp = try! ZenSMTP(config: config, eventLoopGroup: eventLoopGroup)
-        smtp.send(email: email).whenComplete { result in
+        try! ZenSMTP.mail.setup(config: config, eventLoopGroup: eventLoopGroup)
+        ZenSMTP.mail.send(email: email).whenComplete { result in
             switch result {
             case .success(_):
                 print("✅")

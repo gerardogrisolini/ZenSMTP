@@ -28,7 +28,7 @@ final class PrintEverythingHandler: ChannelDuplexHandler {
     
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let buffer = self.unwrapOutboundIn(data)
-        if buffer.readableBytesView.starts(with: Data(ZenSMTP.shared.config.password.utf8).base64EncodedData()) {
+        if buffer.readableBytesView.starts(with: Data(ZenSMTP.mail.config.password.utf8).base64EncodedData()) {
             self.handler("📱 <password hidden>\r\n")
         } else {
             self.handler("📱 \(String(decoding: buffer.readableBytesView, as: UTF8.self))")
