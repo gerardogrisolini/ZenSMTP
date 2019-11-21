@@ -42,7 +42,7 @@ public class ZenSMTP {
             }
         }
         
-        logger.info(Logger.Message(stringLiteral: "☯️  ZenSMTP started on \(config.hostname):\(config.port)"))
+        logger.info(Logger.Message(stringLiteral: "☯️ ZenSMTP started on \(config.hostname):\(config.port)"))
     }
 
     public func send(email: Email) -> EventLoopFuture<Void> {
