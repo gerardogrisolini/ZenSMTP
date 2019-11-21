@@ -7,6 +7,7 @@
 
 import NIO
 import NIOSSL
+import Logging
 
 public enum SmtpError: Error {
     case sendingEmail(reason: String)
@@ -15,6 +16,7 @@ public enum SmtpError: Error {
 
 public class ZenSMTP {
     
+    private var logger: Logger!
     private var eventLoopGroup: EventLoopGroup!
     public var config: ServerConfiguration!
     public var clientHandler: NIOSSLClientHandler? = nil
@@ -24,22 +26,25 @@ public class ZenSMTP {
     init() {
     }
     
-    public func setup(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) throws {
+    public func setup(config: ServerConfiguration, eventLoopGroup: EventLoopGroup) {
+        self.logger = config.logger
         self.eventLoopGroup = eventLoopGroup
         self.config = config
         if let cert = config.cert, let key = config.key {
             let configuration = TLSConfiguration.forServer(
                 certificateChain: [cert],
                 privateKey: key)
-            let sslContext = try NIOSSLContext(configuration: configuration)
-            clientHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: config.hostname)
+            do {
+                let sslContext = try NIOSSLContext(configuration: configuration)
+                clientHandler = try NIOSSLClientHandler(context: sslContext, serverHostname: config.hostname)
+            } catch {
+                logger.error(Logger.Message(stringLiteral: error.localizedDescription))
+            }
         }
+        
+        logger.info(Logger.Message(stringLiteral: "☯️  ZenSMTP started on \(config.hostname):\(config.port)"))
     }
 
-    let communicationHandler: (String) -> Void = { str in
-        print(str)
-    }
-    
     public func send(email: Email) -> EventLoopFuture<Void> {
         let emailSentPromise: EventLoopPromise<Void> = eventLoopGroup.next().makePromise()
         
@@ -47,17 +52,18 @@ public class ZenSMTP {
             // Enable SO_REUSEADDR.
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in
-                #if DEBUG
-                _ = channel.pipeline.addHandler(PrintEverythingHandler(handler: self.communicationHandler))
-                #endif
-                return channel.pipeline.addHandlers([
-                    ByteToMessageHandler(LineBasedFrameDecoder()),
-                    SMTPResponseDecoder(),
-                    MessageToByteHandler(SMTPRequestEncoder()),
-                    SendEmailHandler(configuration: self.config,
-                                     email: email,
-                                     allDonePromise: emailSentPromise)
-                    ], position: .last)
+                return channel.pipeline.addHandlers(
+                    [
+                        PrintEverythingHandler(logger: self.logger),
+                        ByteToMessageHandler(LineBasedFrameDecoder()),
+                        SMTPResponseDecoder(),
+                        MessageToByteHandler(SMTPRequestEncoder()),
+                        SendEmailHandler(configuration: self.config,
+                                         email: email,
+                                         allDonePromise: emailSentPromise)
+                    ],
+                    position: .last
+                )
             }
             .tlsConfig()
             .connect(host: config.hostname, port: config.port)

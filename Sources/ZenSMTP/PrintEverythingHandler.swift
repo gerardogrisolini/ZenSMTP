@@ -7,6 +7,7 @@
 
 import Foundation
 import NIO
+import Logging
 
 final class PrintEverythingHandler: ChannelDuplexHandler {
     typealias InboundIn = ByteBuffer
@@ -14,24 +15,24 @@ final class PrintEverythingHandler: ChannelDuplexHandler {
     typealias OutboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
     
-    private let handler: (String) -> Void
+    private let logger: Logger
     
-    init(handler: @escaping (String) -> Void) {
-        self.handler = handler
+    init(logger: Logger) {
+        self.logger = logger
     }
     
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         let buffer = self.unwrapInboundIn(data)
-        self.handler("☁️ \(String(decoding: buffer.readableBytesView, as: UTF8.self))")
+        logger.trace(Logger.Message(stringLiteral: "☁️ \(String(decoding: buffer.readableBytesView, as: UTF8.self))"))
         context.fireChannelRead(data)
     }
     
     func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
         let buffer = self.unwrapOutboundIn(data)
         if buffer.readableBytesView.starts(with: Data(ZenSMTP.mail.config.password.utf8).base64EncodedData()) {
-            self.handler("📱 <password hidden>\r\n")
+            logger.trace(Logger.Message(stringLiteral: "📱 <password hidden>\r\n"))
         } else {
-            self.handler("📱 \(String(decoding: buffer.readableBytesView, as: UTF8.self))")
+            logger.trace(Logger.Message(stringLiteral: "📱 \(String(decoding: buffer.readableBytesView, as: UTF8.self))"))
         }
         context.write(data, promise: promise)
     }

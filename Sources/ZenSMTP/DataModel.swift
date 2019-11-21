@@ -7,6 +7,7 @@
 
 import Foundation
 import NIOSSL
+import Logging
 
 enum SMTPRequest {
     case sayHello(serverName: String)
@@ -32,19 +33,22 @@ public struct ServerConfiguration {
     public var password: String
     public var cert: NIOSSLCertificateSource?
     public var key: NIOSSLPrivateKeySource?
+    public let logger: Logger
     
     public init(hostname: String,
          port: Int,
          username: String,
          password: String,
          cert: NIOSSLCertificateSource?,
-         key: NIOSSLPrivateKeySource?) {
+         key: NIOSSLPrivateKeySource?,
+         logger: Logger = .init(label: "ZenSMTP")) {
         self.hostname = hostname
         self.port = port
         self.username = username
         self.password = password
         self.cert = cert
         self.key = key
+        self.logger = logger
     }
 }
 

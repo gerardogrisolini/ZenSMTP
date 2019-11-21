@@ -11,13 +11,14 @@ let package = Package(
             targets: ["ZenSMTP"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
-        .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.0.1"),
+        .package(url: "https://github.com/apple/swift-nio.git", .branch("master")),
+        .package(url: "https://github.com/apple/swift-nio-ssl.git", .branch("master")),
+        .package(url: "https://github.com/apple/swift-log.git", .branch("master"))
     ],
     targets: [
         .target(
             name: "ZenSMTP",
-            dependencies: ["NIO", "NIOFoundationCompat", "NIOSSL"]),
+            dependencies: ["NIO", "NIOFoundationCompat", "NIOSSL", "Logging"]),
         .testTarget(
             name: "ZenSMTPTests",
             dependencies: ["ZenSMTP"]),
